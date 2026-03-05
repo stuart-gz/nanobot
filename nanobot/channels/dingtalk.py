@@ -56,6 +56,15 @@ class NanobotDingTalkHandler(CallbackHandler):
             if not content:
                 content = message.data.get("text", {}).get("content", "").strip()
 
+            # Handle richText type (e.g., messages with URLs)
+            if not content and chatbot_msg.message_type == "richText":
+                rich_text_items = message.data.get("content", {}).get("richText", [])
+                text_parts = []
+                for item in rich_text_items:
+                    if isinstance(item, dict) and "text" in item:
+                        text_parts.append(item["text"])
+                content = "".join(text_parts).strip()
+
             if not content:
                 logger.warning(
                     "Received empty or unsupported message type: {}",

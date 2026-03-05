@@ -238,7 +238,7 @@ class GatewayConfig(Base):
 class WebSearchConfig(Base):
     """Web search tool configuration."""
 
-    api_key: str = ""  # Brave Search API key
+    api_key: str = ""  # Serper (Google Search) API key from https://serper.dev
     max_results: int = 5
 
 

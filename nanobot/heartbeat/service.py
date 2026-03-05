@@ -15,7 +15,10 @@ HEARTBEAT_OK_TOKEN = "HEARTBEAT_OK"
 # The prompt sent to agent during heartbeat
 HEARTBEAT_PROMPT = (
     "Read HEARTBEAT.md in your workspace and follow any instructions listed there. "
-    f"If nothing needs attention, reply with exactly: {HEARTBEAT_OK_TOKEN}"
+    f"If nothing needs attention, reply with exactly: {HEARTBEAT_OK_TOKEN}. "
+    f"IMPORTANT: Do NOT use the message tool to send {HEARTBEAT_OK_TOKEN} - "
+    "only return it as your final response text. The message tool should only be used "
+    "when you have actual results to report to the user."
 )
 
 
@@ -110,18 +113,24 @@ class HeartbeatService:
     async def _tick(self) -> None:
         """Execute a single heartbeat tick."""
         content = self._read_heartbeat_file()
-        
+
         # Skip if HEARTBEAT.md is empty or doesn't exist
         if _is_heartbeat_empty(content):
             logger.debug("Heartbeat: no tasks (HEARTBEAT.md empty)")
             return
-        
+
         logger.info("Heartbeat: checking for tasks...")
-        
+
         if self.on_heartbeat:
             try:
                 response = await self.on_heartbeat(HEARTBEAT_PROMPT)
-                if HEARTBEAT_OK_TOKEN in response.upper():
+                # Improved check: short response with OK token means "nothing to report"
+                # This prevents false positives when agent mentions HEARTBEAT_OK in a longer report
+                is_ok_response = (
+                    len(response.strip()) <= 200 and HEARTBEAT_OK_TOKEN in response.upper()
+                ) or response.strip().upper() == HEARTBEAT_OK_TOKEN
+
+                if is_ok_response:
                     logger.info("Heartbeat: OK (nothing to report)")
                 else:
                     logger.info("Heartbeat: completed, delivering response")
